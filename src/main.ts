@@ -117,7 +117,8 @@ function show(next: Screen) {
 }
 
 const settle = () => $("panel").classList.remove("wide");
-window.setTimeout(settle, 2000);
+// Two seconds from when the page is actually on screen, not from script start.
+window.addEventListener("load", () => window.setTimeout(settle, 2200));
 
 $("btn-start").addEventListener("click", () => {
   settle();

@@ -118,9 +118,74 @@ body {
   border-radius: 16px;
   box-shadow: var(--shadow);
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   transition: width 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+/* ---------- opening splash, in the space the wide panel leaves ---------- */
+
+.splash {
+  position: absolute;
+  inset: 0 48px 0 620px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+#panel.wide .splash { opacity: 1; }
+
+.splash-kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  opacity: 0;
+  animation: fade 0.5s ease 0.15s forwards;
+}
+
+.splash-line {
+  margin: 10px 0 0;
+  font-size: clamp(56px, 7vw, 104px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.26em;
+}
+
+.splash-line .w {
+  display: inline-block;
+  overflow: hidden;
+  opacity: 0;
+  translate: 0 0.45em;
+  animation: word 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+.splash-line .w:nth-child(1) { animation-delay: 0.3s; }
+.splash-line .w:nth-child(2) { animation-delay: 0.42s; }
+.splash-line .w:nth-child(3) { animation-delay: 0.54s; color: var(--accent); }
+
+.splash-rule {
+  display: block;
+  height: 3px;
+  width: 0;
+  margin-top: 26px;
+  background: var(--accent);
+  animation: rule 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s forwards;
+}
+
+@keyframes word { to { opacity: 1; translate: 0 0; } }
+@keyframes fade { to { opacity: 1; } }
+@keyframes rule { to { width: 96px; } }
+
+@media (max-width: 1100px) { .splash { display: none; } }
 
 /* Opens spanning the screen so the numbers land first, then settles beside the map. */
 #panel.wide { width: calc(100vw - 32px); }
@@ -131,6 +196,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   #panel { transition: none; }
   #panel.wide { width: var(--panel-w); }
+  .splash { display: none; }
 }
 
 .brand {
