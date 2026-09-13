@@ -119,6 +119,18 @@ body {
   box-shadow: var(--shadow);
   overflow-y: auto;
   overscroll-behavior: contain;
+  transition: width 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Opens spanning the screen so the numbers land first, then settles beside the map. */
+#panel.wide { width: calc(100vw - 32px); }
+
+/* Keep the opening copy a readable column while the card is wide. */
+.screen[data-screen="intro"] { max-width: 560px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #panel { transition: none; }
+  #panel.wide { width: var(--panel-w); }
 }
 
 .brand {
@@ -685,7 +697,8 @@ footer { padding: 16px 26px 22px; border-top: 1px solid var(--line); }
 /* ---------- small screens ---------- */
 
 @media (max-width: 720px) {
-  #panel { inset: auto 8px 8px; top: auto; width: auto; max-height: 64dvh; }
+  #panel,
+  #panel.wide { inset: auto 8px 8px; top: auto; width: auto; max-height: 64dvh; }
   .brand { padding: 16px 18px 12px; flex-wrap: wrap; }
   .crumbs { padding: 10px 18px 0; }
   .screen { padding: 14px 18px 18px; }

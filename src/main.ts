@@ -116,7 +116,13 @@ function show(next: Screen) {
   $("panel").scrollTo({ top: 0, behavior: "smooth" });
 }
 
-$("btn-start").addEventListener("click", () => show("where"));
+const settle = () => $("panel").classList.remove("wide");
+window.setTimeout(settle, 2000);
+
+$("btn-start").addEventListener("click", () => {
+  settle();
+  show("where");
+});
 
 // ---------- framing ----------
 
