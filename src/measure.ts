@@ -48,7 +48,7 @@ export function classify(m: ChangeMeasure): { signal: Signal; ratio: number } {
   return { signal: "directional", ratio };
 }
 
-async function grey(url: string): Promise<ImageData | null> {
+export async function grey(url: string): Promise<ImageData | null> {
   const res = await fetch(url);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`tile ${res.status}`);

@@ -437,6 +437,52 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
 .more > summary::before { content: "+ "; color: var(--faint); }
 .more[open] > summary::before { content: "\2212  "; }
 
+/* ---------- belt scan ---------- */
+
+.scan {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 13px 15px 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.scan > .site-label { color: var(--ink); }
+.scan > .site-label::before { content: "\25CE  "; font-weight: 400; }
+.scan #btn-scan { margin-top: 10px; }
+.scan .status { margin-top: 10px; }
+.scan .chart-cap { margin: 12px 0 0; }
+
+#hotspots { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
+
+.hot {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.hot:hover { border-color: var(--ink); }
+
+.hot .rank {
+  font: 600 11px "JetBrains Mono", ui-monospace, monospace;
+  color: var(--faint);
+}
+
+.hot .where { font-size: 13px; font-weight: 600; }
+.hot .note { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); margin-top: 1px; }
+.hot .note.new { color: var(--accent); }
+.hot .pct { font: 600 13px "JetBrains Mono", ui-monospace, monospace; color: var(--accent); }
+
 /* "Somewhere else" reads as one more card, not a footnote under the cards. */
 .elsewhere { margin-top: 8px; }
 

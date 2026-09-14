@@ -12,6 +12,8 @@ import { SITES, YEARS, type Site } from "./presets";
 import { geocode } from "./geocode";
 import { chartSvg, sweepYears, type Sweep } from "./sweep";
 import { writeBrief } from "./brief";
+import { BELT, kmBetween, scanBelt, SCAN_NOW, SCAN_THEN, type Cell, type Scan } from "./scan";
+import { reverseGeocode } from "./reverse";
 
 // maplibre resolves its worker filename by string concatenation, which no
 // bundler can follow, so the file is never emitted and vector tiles die
@@ -116,6 +118,13 @@ function show(next: Screen) {
   }
   $("crumbs").hidden = next === "intro";
   $("panel").scrollTo({ top: 0, behavior: "smooth" });
+  // The scan's red cells would read as the loss mask on the verdict; only show them while choosing.
+  const vis = next === "where" || next === "when" ? "visible" : "none";
+  for (const map of [mapBefore, mapAfter]) {
+    for (const id of [`${HOT}-fill`, `${HOT}-rank`]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
+    }
+  }
 }
 
 const settle = () => $("panel").classList.remove("wide");
@@ -160,6 +169,7 @@ let measured: ChangeMeasure | null = null;
 
 let sweep: Sweep | null = null;
 let sweepKey = "";
+let scan: Scan | null = null;
 
 let thenYear = 2019;
 let nowYear: number | "latest" = 2025;
@@ -181,6 +191,7 @@ function resetMap() {
   dropLayer(mapAfter, MASK);
   dropLayer(mapBefore, "img-before");
   dropLayer(mapAfter, "img-after");
+  if (scan) paintHotspots(scan);
   $("swipe").hidden = true;
   $("stamp-before").hidden = true;
   $("stamp-after").hidden = true;
@@ -215,6 +226,137 @@ function pickSite(s: Site) {
 $("btn-back-where").addEventListener("click", () => {
   resetMap();
   show("where");
+});
+
+// ---------- belt scan ----------
+
+const HOT = "hotspots";
+
+/** Every cell above threshold, painted by how much it lost; the ranked ones carry a number. */
+function paintHotspots(sc: Scan) {
+  const hot = new Set(sc.hotspots);
+  const features = sc.cells
+    .filter((c) => c.valid >= 0.6 && c.lossPct >= 3)
+    .map((c) => ({
+      type: "Feature",
+      properties: {
+        loss: c.lossPct,
+        rank: hot.has(c) ? String(sc.hotspots.indexOf(c) + 1) : "",
+      },
+      geometry: { type: "Polygon", coordinates: [[...c.ring, c.ring[0]]] },
+    }));
+  const data = { type: "FeatureCollection", features } as any;
+  for (const map of [mapBefore, mapAfter]) {
+    if (map.getSource(HOT)) {
+      (map.getSource(HOT) as any).setData(data);
+      continue;
+    }
+    map.addSource(HOT, { type: "geojson", data });
+    map.addLayer({
+      id: `${HOT}-fill`,
+      type: "fill",
+      source: HOT,
+      paint: {
+        "fill-color": "#c6431f",
+        "fill-opacity": ["interpolate", ["linear"], ["get", "loss"], 3, 0.08, 25, 0.55],
+      },
+    });
+    map.addLayer({
+      id: `${HOT}-rank`,
+      type: "symbol",
+      source: HOT,
+      filter: ["!=", ["get", "rank"], ""],
+      layout: {
+        "text-field": ["get", "rank"],
+        "text-size": 12,
+        "text-font": ["Noto Sans Bold"],
+      },
+      paint: { "text-color": "#ffffff", "text-halo-color": "#c6431f", "text-halo-width": 1.5 },
+    });
+  }
+}
+
+/** A hotspot within a kilometre of a pre-marked area is that area, not a discovery. */
+const knownSite = (c: Cell): Site | null => {
+  for (const s of SITES) {
+    if (s.kind !== "loss") continue;
+    const xs = s.ring.map((p) => p[0]), ys = s.ring.map((p) => p[1]);
+    const centre: [number, number] = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+    if (kmBetween(c.centre, centre) < 1.2) return s;
+  }
+  return null;
+};
+
+async function pickHotspot(c: Cell, rank: number, known: Site | null) {
+  const name = known ? known.place : (await reverseGeocode(c.centre[0], c.centre[1]).catch(() => null)) ?? "unnamed ground";
+  site = {
+    id: `hotspot-${rank}`,
+    label: `Hotspot ${rank}`,
+    place: known ? `${known.place} (hotspot ${rank})` : `Hotspot ${rank}, near ${name}`,
+    blurb: "",
+    source: known ? known.source : { name: `Found by the belt scan, ${SCAN_THEN} → ${SCAN_NOW}`, url: "" },
+    kind: "loss",
+    ring: c.ring,
+  };
+  thenYear = SCAN_THEN;
+  nowYear = SCAN_NOW;
+  paintChips();
+  draw.set(c.ring);
+  fitBox(bbox(c.ring));
+  $("when-place").textContent = site.place;
+  show("when");
+  void run();
+}
+
+$("btn-scan").addEventListener("click", async () => {
+  const btn = $<HTMLButtonElement>("btn-scan");
+  const status = $("scan-status");
+  btn.disabled = true;
+  status.hidden = false;
+  status.dataset.tone = "busy";
+  try {
+    fitBox(BELT);
+    const sc = await scanBelt(threshold(), (text) => {
+      status.textContent = text;
+    });
+    scan = sc;
+    paintHotspots(sc);
+
+    const list = $("hotspots");
+    list.innerHTML = "";
+    let unreported = 0;
+    sc.hotspots.forEach((c, i) => {
+      const known = knownSite(c);
+      if (!known) unreported++;
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.className = "hot";
+      b.innerHTML =
+        `<span class="rank">${String(i + 1).padStart(2, "0")}</span>` +
+        `<span class="where">${c.centre[1].toFixed(4)}, ${c.centre[0].toFixed(4)}` +
+        `<span class="note ${known ? "" : "new"}">${known ? `That is ${known.place}` : "Not in any record we hold"}</span></span>` +
+        `<span class="pct">${c.lossPct.toFixed(0)}%</span>`;
+      b.addEventListener("click", () => void pickHotspot(c, i + 1, known));
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+    list.hidden = sc.hotspots.length === 0;
+
+    const cap = $("scan-cap");
+    cap.innerHTML = sc.hotspots.length
+      ? `<b>${sc.hotspots.length}</b> square kilometres lost more than 6% of their cover between ` +
+        `<b>${formatScene(sc.before)}</b> and <b>${formatScene(sc.after)}</b>, with losses at least 3× gains, ` +
+        `after each 4 km tile's own shift (haze, season) is taken out. ` +
+        `<b>${unreported}</b> of them match no site on record. Tap one to measure it properly.`
+      : `Nothing above threshold between ${formatScene(sc.before)} and ${formatScene(sc.after)}.`;
+    cap.hidden = false;
+    status.hidden = true;
+  } catch (err) {
+    status.dataset.tone = "error";
+    status.textContent = `Scan failed: ${(err as Error).message}`;
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 // ---------- drawing ----------
@@ -311,8 +453,8 @@ const showScene = (map: MLMap, key: string, scene: Scene) => {
     attribution: "Copernicus Sentinel-2, Microsoft Planetary Computer",
   });
   map.addLayer({ id: key, type: "raster", source: key });
-  // Keep the outline above the imagery regardless of insertion order.
-  for (const id of ["draw-fill", "draw-line", "draw-verts"]) {
+  // Keep the outline and the scan above the imagery regardless of insertion order.
+  for (const id of [`${HOT}-fill`, `${HOT}-rank`, "draw-fill", "draw-line", "draw-verts"]) {
     if (map.getLayer(id)) map.moveLayer(id);
   }
 };
