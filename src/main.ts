@@ -14,6 +14,7 @@ import { chartSvg, sweepYears, type Sweep } from "./sweep";
 import { writeBrief } from "./brief";
 import { BELT, kmBetween, scanBelt, SCAN_NOW, SCAN_THEN, type Cell, type Scan } from "./scan";
 import { reverseGeocode } from "./reverse";
+import { askMap, type Action, type Comparison } from "./ask";
 
 // maplibre resolves its worker filename by string concatenation, which no
 // bundler can follow, so the file is never emitted and vector tiles die
@@ -117,6 +118,7 @@ function show(next: Screen) {
     c.dataset.state = i < idx ? "done" : i === idx ? "active" : "";
   }
   $("crumbs").hidden = next === "intro";
+  $("ask-card").hidden = next === "intro" || next === "draw";
   $("panel").scrollTo({ top: 0, behavior: "smooth" });
   // The scan's red cells would read as the loss mask on the verdict; only show them while choosing.
   const vis = next === "where" || next === "when" ? "visible" : "none";
@@ -409,7 +411,7 @@ for (const y of YEARS) {
   thenChips.set(y, chip(String(y), () => { thenYear = y; paintChips(); void run(); }));
   nowChips.set(y, chip(String(y), () => { nowYear = y; paintChips(); void run(); }));
 }
-nowChips.set("latest", chip("Latest pass", () => { nowYear = "latest"; paintChips(); void run(); }, "latest"));
+nowChips.set("latest", chip("Latest dry season", () => { nowYear = "latest"; paintChips(); void run(); }, "latest"));
 
 for (const b of thenChips.values()) rowThen.appendChild(b);
 for (const b of nowChips.values()) rowNow.appendChild(b);
@@ -430,13 +432,18 @@ paintChips();
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
-/** Walk back from today in 45-day windows until a clear pass turns up. */
+/**
+ * The most recent November–December season with a clear pass — the same window
+ * every other year uses. A monsoon or late-winter scene against a November
+ * baseline reads as regrowth or loss and is neither.
+ */
 async function latestScene(box: [number, number, number, number]): Promise<Scene | null> {
-  const day = 864e5;
-  for (let back = 0; back < 420; back += 45) {
-    const to = new Date(Date.now() - back * day);
-    const from = new Date(to.getTime() - 45 * day);
-    const s = await findScene(box, isoDay(from), isoDay(to));
+  const today = new Date();
+  const y = today.getUTCFullYear();
+  const seasons = today.getUTCMonth() >= 10 ? [y, y - 1] : [y - 1, y - 2];
+  for (const start of seasons) {
+    const end = new Date(Math.min(Date.UTC(start, 11, 31), today.getTime()));
+    const s = await findScene(box, `${start}-11-01`, isoDay(end));
     if (s) return s;
   }
   return null;
@@ -476,6 +483,42 @@ const say = (text: string, tone: "" | "busy" | "error" = "busy") => {
   el.textContent = text;
 };
 
+const yearLabel = (y: number | "latest") => (y === "latest" ? "the latest dry-season pass" : `Nov–Dec ${y}`);
+
+/**
+ * The measurement itself, with no screen attached: find both passes on one
+ * tile, difference them, pull the statistics. The verdict, the sweep and
+ * "ask the map" all go through here, so they can never disagree.
+ */
+async function compare(
+  r: Ring,
+  then: number,
+  now: number | "latest",
+  progress: (text: string) => void = () => {},
+): Promise<{ ok: true; c: Comparison; stats: { before: Stats; after: Stats } } | { ok: false; error: string }> {
+  const box = bbox(r);
+  progress(`Searching the Sentinel-2 archive for ${yearLabel(now)}…`);
+  // Pin both dates to one MGRS tile, otherwise the two scenes cover
+  // different ground and the comparison is meaningless.
+  const after = now === "latest"
+    ? await latestScene(box)
+    : await findScene(box, `${now}-11-01`, `${now}-12-31`);
+  if (!after) return { ok: false, error: `No pass under 20% cloud in ${yearLabel(now)}. Monsoon, most likely — try a neighbouring year.` };
+
+  progress(`Found ${formatScene(after)} at ${after.cloud.toFixed(1)}% cloud. Matching it against ${then}…`);
+  const before = await findScene(box, `${then}-11-01`, `${then}-12-31`, 20, after.mgrs);
+  if (!before) return { ok: false, error: `No clear pass over tile ${after.mgrs} in Nov–Dec ${then}. Try a neighbouring year.` };
+
+  progress("Both passes found. Differencing every pixel inside the outline…");
+  const [m, sb, sa] = await Promise.all([
+    measureChange(r, before.id, after.id, threshold()),
+    ndviStats(before.id, r),
+    ndviStats(after.id, r),
+  ]);
+  const { ratio } = classify(m);
+  return { ok: true, c: { before, after, measure: m, ratio }, stats: { before: sb, after: sa } };
+}
+
 /**
  * One click does the whole job. The visitor picked a place and two years;
  * everything from here to the verdict is the tool's problem, not theirs.
@@ -483,29 +526,15 @@ const say = (text: string, tone: "" | "busy" | "error" = "busy") => {
 async function run() {
   if (ring.length < 3) return;
   const id = ++runId;
-  const box = bbox(ring);
-  const nowLabel = nowYear === "latest" ? "the most recent clear pass" : `Nov–Dec ${nowYear}`;
 
   try {
-    say(`Searching the Sentinel-2 archive for ${nowLabel}…`);
-    // Pin both dates to one MGRS tile, otherwise the two scenes cover
-    // different ground and the comparison is meaningless.
-    const after = nowYear === "latest"
-      ? await latestScene(box)
-      : await findScene(box, `${nowYear}-11-01`, `${nowYear}-12-31`);
+    const result = await compare(ring, thenYear, nowYear, (t) => { if (id === runId) say(t); });
     if (id !== runId) return;
-    if (!after) {
-      say(`No pass under 20% cloud in ${nowLabel}. Monsoon, most likely — try a neighbouring year.`, "error");
+    if (!result.ok) {
+      say(result.error, "error");
       return;
     }
-
-    say(`Found ${formatScene(after)} at ${after.cloud.toFixed(1)}% cloud. Matching it against ${thenYear}…`);
-    const before = await findScene(box, `${thenYear}-11-01`, `${thenYear}-12-31`, 20, after.mgrs);
-    if (id !== runId) return;
-    if (!before) {
-      say(`No clear pass over tile ${after.mgrs} in Nov–Dec ${thenYear}. Try a neighbouring year.`, "error");
-      return;
-    }
+    const { before, after, measure } = result.c;
 
     showScene(mapBefore, "img-before", before);
     showScene(mapAfter, "img-after", after);
@@ -515,16 +544,8 @@ async function run() {
     split = 50;
     applySplit();
     scenes = { before, after };
-
-    say("Both passes on screen. Differencing every pixel inside the outline…");
-    const [m, sb, sa] = await Promise.all([
-      measureChange(ring, before.id, after.id, threshold()),
-      ndviStats(before.id, ring),
-      ndviStats(after.id, ring),
-    ]);
-    if (id !== runId) return;
-    measured = m;
-    stats = { before: sb, after: sa };
+    measured = measure;
+    stats = result.stats;
 
     applyMask();
     $("legend").hidden = false;
@@ -746,6 +767,69 @@ $("btn-export").addEventListener("click", () => {
   w.document.write(html);
   w.document.close();
 });
+
+// ---------- ask the map ----------
+
+const ringOf = (id: string): { ring: Ring; place: string } | null => {
+  if (id === "current") return ring.length >= 3 ? { ring, place: site ? site.place : "the area on screen" } : null;
+  const s = SITES.find((x) => x.id === id);
+  return s ? { ring: s.ring, place: s.place } : null;
+};
+
+/** Runs one of the model's requested comparisons with the verdict's own code. */
+const runAction = async (a: Action) => {
+  const target = ringOf(a.site);
+  if (!target) return { place: a.site, comparison: null, error: `no such site: ${a.site}` };
+  if (a.now !== "latest" && a.then >= a.now) return { place: target.place, comparison: null, error: "then must be before now" };
+  const r = await compare(target.ring, a.then, a.now);
+  return r.ok
+    ? { place: target.place, comparison: r.c }
+    : { place: target.place, comparison: null, error: r.error };
+};
+
+const askForm = $<HTMLFormElement>("ask");
+const askInput = $<HTMLInputElement>("ask-q");
+
+askForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const question = askInput.value.trim();
+  if (!question) return;
+  const status = $("ask-status");
+  const btn = $<HTMLButtonElement>("ask-go");
+  btn.disabled = true;
+  status.hidden = false;
+  status.dataset.tone = "busy";
+  $("ask-out").hidden = true;
+
+  try {
+    const current = scenes && measured
+      ? { place: site ? site.place : "the outlined area", then: thenYear, now: nowYear, comparison: { before: scenes.before, after: scenes.after, measure: measured, ratio: classify(measured).ratio } }
+      : null;
+    const a = await askMap(question, { sites: SITES, years: YEARS, current, sweep, scan }, runAction, (t) => {
+      status.textContent = t;
+    });
+    $("ask-answer").textContent = a.answer;
+    const ran = $("ask-ran");
+    ran.innerHTML = a.ran.length
+      ? `<span>Measured for this answer:</span>` +
+        a.ran.map((r) => `<span class="ran">${r.place}, ${r.action.then} → ${r.action.now}: ${r.result}</span>`).join("")
+      : `<span>Answered from what was already on screen.</span>`;
+    $("ask-out").hidden = false;
+    status.hidden = true;
+  } catch (err) {
+    status.dataset.tone = "error";
+    status.textContent = `Couldn't answer: ${(err as Error).message}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+for (const chip_ of document.querySelectorAll<HTMLButtonElement>(".ask-eg")) {
+  chip_.addEventListener("click", () => {
+    askInput.value = chip_.textContent ?? "";
+    askForm.requestSubmit();
+  });
+}
 
 // ---------- place search ----------
 

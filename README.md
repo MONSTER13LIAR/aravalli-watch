@@ -59,7 +59,22 @@ Three taps, no form.
    hectares and painted red on the after image, under a swipe divider.
    A printable evidence packet carries the measurement, both scene ids, both
    acquisition timestamps, the method, and the limits.
-4. **Track every year & write the brief.** One button runs the same measurement
+4. **Scan the whole belt.** Instead of naming a place, let the satellite look:
+   every square kilometre of the Faridabad–Gurugram Aravallis, Bandhwari to
+   Tughlakabad, is differenced between two dry-season passes and ranked by what it
+   lost. The top twelve are numbered on the map; a hit within a kilometre of a
+   pre-marked area is named as that area, anything else is flagged as not on
+   record. Each pixel is measured against its own 4 km tile's median change, so a
+   November smog blanket over Delhi — which drops NDVI 0.1 across whole tiles —
+   cancels out and only what is local survives. Run cold, the scanner finds Ankhir
+   on its own.
+5. **Ask the map.** A question in plain words — *is Anangpur worse than Bandhwari?*,
+   *was 2024 just a dry year?* The model never measures anything: it names the
+   comparisons it needs, the page runs them with the verdict's own code, and the
+   model answers only from what came back. Every comparison it used is listed
+   under the answer. The years it may use are enforced server-side, not left to
+   the model.
+6. **Track every year & write the brief.** One button runs the same measurement
    for every dry-season year since the baseline, all pinned to the baseline's
    tile, and draws the result as a bar chart with the worst year marked. The
    numbers then go to a language model which writes the finding in plain words,
@@ -134,9 +149,9 @@ npm run dev
 ```
 
 Every measurement goes straight from the browser to a public open-data endpoint — no
-key, no backend. The one exception is the brief: `api/brief.js` is a small serverless
-function (Vercel) that holds the `FEATHERLESS_API_KEY` and forwards the already-computed
-numbers to the model, so the key never reaches the page. The GitHub Pages build calls
+key, no backend. The exceptions are the brief and ask-the-map: `api/brief.js` and `api/ask.js` are
+small serverless functions (Vercel) that hold the `FEATHERLESS_API_KEY` and forward
+already-computed numbers to the model, so the key never reaches the page. The GitHub Pages build calls
 the Vercel deployment for it; everything else works without it.
 
 ## Implementation notes

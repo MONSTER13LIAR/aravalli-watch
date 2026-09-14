@@ -234,6 +234,28 @@
         </details>
       </section>
 
+      <section class="ask-card" id="ask-card" hidden>
+        <span class="site-label">Ask the map</span>
+        <p class="help">
+          Ask in plain words. The model decides which comparisons to run, the page
+          measures them, and the answer is built only from those numbers.
+        </p>
+        <form id="ask" autocomplete="off">
+          <input id="ask-q" type="text" placeholder="Is Anangpur worse than Bandhwari?" aria-label="Ask the map" maxlength="300" />
+          <button id="ask-go" type="submit" class="primary">Ask</button>
+        </form>
+        <div class="ask-egs">
+          <button type="button" class="ask-eg">Is Anangpur worse than Bandhwari?</button>
+          <button type="button" class="ask-eg">Was 2024 just a dry year?</button>
+          <button type="button" class="ask-eg">Which hotspot should I check first?</button>
+        </div>
+        <p class="status" id="ask-status" hidden></p>
+        <div id="ask-out" hidden>
+          <p class="ask-answer" id="ask-answer"></p>
+          <p class="ask-ran" id="ask-ran"></p>
+        </div>
+      </section>
+
       <footer>
         <p class="caveat">
           Evidence of change on the ground, not proof of who caused it. Sentinel&#8209;2

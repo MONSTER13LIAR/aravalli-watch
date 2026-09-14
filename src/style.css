@@ -805,6 +805,62 @@ button.small { padding: 5px 10px; font-size: 12px; }
 .context .src { font-size: 10.5px; color: var(--faint); }
 .context a { color: var(--accent); }
 
+/* ---------- ask the map ---------- */
+
+.ask-card {
+  margin: 0 26px 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.ask-card > .site-label { color: var(--ink); }
+.ask-card > .site-label::before { content: "\2726  "; font-weight: 400; color: var(--accent); }
+.ask-card .help { margin-top: 6px; }
+
+#ask { display: flex; gap: 7px; margin-top: 12px; }
+
+#ask input {
+  flex: 1;
+  min-width: 0;
+  font: 400 13.5px Inter, system-ui, sans-serif;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#ask input:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+
+.ask-egs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+.ask-eg {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.ask-eg:hover { color: var(--ink); border-color: var(--faint); }
+
+.ask-answer {
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.ask-ran { margin: 10px 0 0; display: grid; gap: 4px; font-size: 11.5px; line-height: 1.5; color: var(--faint); }
+.ask-ran .ran { font: 400 11.5px/1.5 "JetBrains Mono", ui-monospace, monospace; color: var(--muted); }
+
+@media (max-width: 720px) { .ask-card { margin: 0 18px 14px; } }
+
 /* ---------- footer ---------- */
 
 footer { padding: 16px 26px 22px; border-top: 1px solid var(--line); }
