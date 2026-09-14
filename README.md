@@ -59,6 +59,14 @@ Three taps, no form.
    hectares and painted red on the after image, under a swipe divider.
    A printable evidence packet carries the measurement, both scene ids, both
    acquisition timestamps, the method, and the limits.
+4. **Track every year & write the brief.** One button runs the same measurement
+   for every dry-season year since the baseline, all pinned to the baseline's
+   tile, and draws the result as a bar chart with the worst year marked. The
+   numbers then go to a language model which writes the finding in plain words,
+   reads the trajectory, and drafts a complaint addressed to the Deputy
+   Commissioner and District Forest Officer — with both scene ids, the published
+   record, and the limits stated. The model is instructed to use only the numbers
+   it is given, and the page says so under the draft: read it before you send it.
 
 ### The pre-marked areas
 
@@ -116,6 +124,7 @@ like. Without that test a red map is just a pattern.
 | [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) | STAC search, tiling, zonal statistics | No key required |
 | [OpenFreeMap](https://openfreemap.org/) / OpenStreetMap | Basemap | Open |
 | [Nominatim](https://nominatim.openstreetmap.org/) | Place search | Open |
+| [Featherless](https://featherless.ai/) (Qwen3-30B-A3B) | Writing the brief and complaint draft | Key held server-side |
 
 ## Running it
 
@@ -124,8 +133,11 @@ npm install
 npm run dev
 ```
 
-No API keys, no environment variables, no backend. Every request goes straight from
-the browser to a public open-data endpoint.
+Every measurement goes straight from the browser to a public open-data endpoint — no
+key, no backend. The one exception is the brief: `api/brief.js` is a small serverless
+function (Vercel) that holds the `FEATHERLESS_API_KEY` and forwards the already-computed
+numbers to the model, so the key never reaches the page. The GitHub Pages build calls
+the Vercel deployment for it; everything else works without it.
 
 ## Implementation notes
 

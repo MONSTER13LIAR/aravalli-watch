@@ -155,6 +155,33 @@
           <div><dt>Loss : gain</dt><dd id="m-px"></dd></div>
         </dl>
 
+        <section class="brief" id="brief">
+          <span class="site-label">Track every year &middot; AI brief</span>
+          <p class="help">
+            Runs the same measurement for every year since your baseline, then writes
+            the finding in plain words and a complaint you can file.
+          </p>
+          <button id="btn-brief" class="primary wide">Track every year &amp; write the brief</button>
+          <p class="status" id="brief-status" hidden></p>
+          <div id="chart-wrap" hidden>
+            <p class="chart-cap" id="chart-cap"></p>
+            <div id="chart"></div>
+          </div>
+          <div id="brief-out" hidden>
+            <p class="brief-finding" id="brief-finding"></p>
+            <p class="brief-traj" id="brief-traj"></p>
+            <p class="brief-next" id="brief-next"></p>
+            <div class="complaint">
+              <div class="complaint-head">
+                <span>Complaint draft</span>
+                <button id="btn-copy" class="ghost small">Copy</button>
+              </div>
+              <textarea id="complaint" readonly rows="11" spellcheck="false"></textarea>
+            </div>
+            <p class="source" id="brief-model"></p>
+          </div>
+        </section>
+
         <button id="btn-export" class="primary wide">Open the evidence packet</button>
         <div class="row">
           <button id="btn-again-year" class="ghost">Another year</button>

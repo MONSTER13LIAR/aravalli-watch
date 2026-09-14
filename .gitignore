@@ -10,3 +10,5 @@ npm-debug.log*
 plan.md
 research/
 notes/
+.vercel
+.env*

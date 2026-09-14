@@ -642,6 +642,79 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   color: var(--faint);
 }
 
+/* ---------- track every year + brief ---------- */
+
+.brief {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.brief > .site-label { color: var(--ink); }
+.brief .help { margin-top: 6px; }
+.brief #btn-brief { margin-top: 12px; }
+
+.chart-cap {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.chart-cap b { color: var(--ink); font-weight: 600; }
+
+.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .axis { stroke: var(--line); stroke-width: 0.4; }
+.chart .bar { fill: #e7a48f; }
+.chart .bar.worst { fill: var(--accent); }
+.chart .bar.missing { fill: var(--line); }
+.chart .yr { font: 500 3.1px "JetBrains Mono", ui-monospace, monospace; fill: var(--faint); text-anchor: middle; }
+.chart .val { font: 600 3.4px Inter, system-ui, sans-serif; fill: var(--accent); text-anchor: middle; }
+
+.brief-finding {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.brief-traj { margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--ink); }
+.brief-next { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.brief-next:empty, .brief-traj:empty { display: none; }
+
+.complaint { margin-top: 14px; }
+
+.complaint-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+button.small { padding: 5px 10px; font-size: 12px; }
+
+#complaint {
+  width: 100%;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--ink);
+  font: 400 12.5px/1.55 Inter, system-ui, sans-serif;
+}
+
+#complaint:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+
 /* ---------- why-this-matters context ---------- */
 
 .context {

@@ -10,6 +10,8 @@ import { classify, measureChange, type ChangeMeasure } from "./measure";
 import { packetHtml } from "./packet";
 import { SITES, YEARS, type Site } from "./presets";
 import { geocode } from "./geocode";
+import { chartSvg, sweepYears, type Sweep } from "./sweep";
+import { writeBrief } from "./brief";
 
 // maplibre resolves its worker filename by string concatenation, which no
 // bundler can follow, so the file is never emitted and vector tiles die
@@ -155,6 +157,9 @@ let site: Site | null = null;
 let scenes: { before: Scene; after: Scene } | null = null;
 let stats: { before: Stats; after: Stats } | null = null;
 let measured: ChangeMeasure | null = null;
+
+let sweep: Sweep | null = null;
+let sweepKey = "";
 
 let thenYear = 2019;
 let nowYear: number | "latest" = 2025;
@@ -383,6 +388,7 @@ async function run() {
     $("legend").hidden = false;
     $<HTMLInputElement>("mask-on").checked = true;
     fillVerdict();
+    resetBrief();
     $("run-status").hidden = true;
     show("verdict");
   } catch (err) {
@@ -476,6 +482,93 @@ function fillVerdict() {
       ? `<br />Record: <a href="${site.source.url}" target="_blank" rel="noopener">${site.source.name}</a>`
       : "");
 }
+
+// ---------- track every year + brief ----------
+
+const briefKey = () => (scenes ? `${JSON.stringify(ring)}|${scenes.before.id}|${threshold()}` : "");
+
+/** A new verdict makes the old chart and letter wrong; take them down. */
+function resetBrief() {
+  $("brief-out").hidden = true;
+  $("brief-status").hidden = true;
+  if (sweepKey !== briefKey()) {
+    $("chart-wrap").hidden = true;
+  }
+}
+
+function renderChart() {
+  if (!sweep) return;
+  const worst = sweep.points.reduce<(typeof sweep.points)[number] | null>(
+    (a, b) => (!a || b.lossPct > a.lossPct ? b : a),
+    null,
+  );
+  $("chart").innerHTML = chartSvg(sweep, YEARS);
+  $("chart-cap").innerHTML =
+    `Lost cover each year against <b>${formatScene(sweep.baseline)}</b>` +
+    (worst ? ` · worst <b>${worst.year}</b> at <b>${worst.lossPct.toFixed(1)}%</b>` : "") +
+    (sweep.missing.length ? ` · no clear pass in ${sweep.missing.join(", ")}` : "");
+  $("chart-wrap").hidden = false;
+}
+
+$("btn-brief").addEventListener("click", async () => {
+  if (!scenes || !measured) return;
+  const btn = $<HTMLButtonElement>("btn-brief");
+  const status = $("brief-status");
+  btn.disabled = true;
+  status.hidden = false;
+  status.dataset.tone = "busy";
+
+  try {
+    const key = briefKey();
+    if (!sweep || sweepKey !== key) {
+      sweep = await sweepYears(ring, scenes.before, YEARS, threshold(), (text, done, total) => {
+        status.textContent = `${text} (${done}/${total})`;
+      });
+      sweepKey = key;
+      renderChart();
+    }
+
+    status.textContent = "Writing the brief from these numbers…";
+    const { signal, ratio } = classify(measured);
+    const b = await writeBrief({
+      place: site ? site.place : "the outlined area",
+      record: site ? site.source : null,
+      areaM2: ringArea(ring),
+      threshold: threshold(),
+      before: scenes.before,
+      after: scenes.after,
+      measure: measured,
+      signal,
+      ratio,
+      sweep,
+    });
+
+    $("brief-finding").textContent = b.finding;
+    $("brief-traj").textContent = b.trajectory;
+    $("brief-next").textContent = b.next ? `Next: ${b.next}` : "";
+    $<HTMLTextAreaElement>("complaint").value = b.complaint;
+    $("brief-model").textContent = `Written by ${b.model} from the numbers above only. Read it before you send it.`;
+    $("brief-out").hidden = false;
+    status.hidden = true;
+  } catch (err) {
+    status.dataset.tone = "error";
+    status.textContent = `Brief failed: ${(err as Error).message}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("btn-copy").addEventListener("click", async () => {
+  const text = $<HTMLTextAreaElement>("complaint").value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    $("btn-copy").textContent = "Copied";
+    window.setTimeout(() => ($("btn-copy").textContent = "Copy"), 1600);
+  } catch {
+    $<HTMLTextAreaElement>("complaint").select();
+  }
+});
 
 $("btn-again-year").addEventListener("click", () => show("when"));
 $("btn-again-place").addEventListener("click", () => {
