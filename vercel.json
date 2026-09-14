@@ -1,5 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/**/*.js": { "maxDuration": 30 } }
+  "functions": { "api/**/*.js": { "maxDuration": 60 } }
 }

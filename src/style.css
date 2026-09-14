@@ -748,6 +748,28 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
 button.small { padding: 5px 10px; font-size: 12px; }
 
+.complaint-head { gap: 8px; }
+.complaint-head > span:first-child { flex: 1; }
+
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+
+.lang-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  border: 0;
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.lang-btn[data-on="true"] { background: var(--ink); color: #fff; }
+.lang-btn:disabled { opacity: 0.4; }
+
+#complaint[lang="hi"] { font-size: 13.5px; line-height: 1.7; }
+
 #complaint {
   width: 100%;
   resize: vertical;

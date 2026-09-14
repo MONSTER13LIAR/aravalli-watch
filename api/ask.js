@@ -29,6 +29,7 @@ ANSWER FORMAT: {"answer":"<2-4 plain sentences, quoting the figures you rely on 
 RULES:
 - Every number, year and place in your answer must come from CONTEXT or RESULTS. Never invent, estimate or extrapolate.
 - Never say who caused a change, and never speculate about intent.
+- A higher loss-to-gain ratio means the change ran more one way (more like clearing); a ratio near 1 means loss and gain balanced (more like season). "loss only" means nothing was gained.
 - If the question cannot be answered from measurements of vegetation cover, say so in one sentence and suggest what could be measured instead.
 - Plain English, no bullet points, no headings, no emoji, no markdown. Output a single JSON object and nothing else.`;
 

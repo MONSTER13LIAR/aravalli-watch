@@ -80,7 +80,8 @@ Three taps, no form.
    numbers then go to a language model which writes the finding in plain words,
    reads the trajectory, and drafts a complaint addressed to the Deputy
    Commissioner and District Forest Officer — with both scene ids, the published
-   record, and the limits stated. The model is instructed to use only the numbers
+   record, and the limits stated — in English and in Hindi, because the residents
+   who watch the trucks do not file complaints in English. The model is instructed to use only the numbers
    it is given, and the page says so under the draft: read it before you send it.
 
 ### The pre-marked areas

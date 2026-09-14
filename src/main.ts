@@ -11,7 +11,7 @@ import { packetHtml } from "./packet";
 import { SITES, YEARS, type Site } from "./presets";
 import { geocode } from "./geocode";
 import { chartSvg, sweepYears, type Sweep } from "./sweep";
-import { writeBrief } from "./brief";
+import { translateComplaint, writeBrief } from "./brief";
 import { BELT, kmBetween, scanBelt, SCAN_NOW, SCAN_THEN, type Cell, type Scan } from "./scan";
 import { reverseGeocode } from "./reverse";
 import { askMap, type Action, type Comparison } from "./ask";
@@ -171,6 +171,7 @@ let measured: ChangeMeasure | null = null;
 
 let sweep: Sweep | null = null;
 let sweepKey = "";
+let complaints = { en: "", hi: "" };
 let scan: Scan | null = null;
 
 let thenYear = 2019;
@@ -709,7 +710,8 @@ $("btn-brief").addEventListener("click", async () => {
     $("brief-finding").textContent = b.finding;
     $("brief-traj").textContent = b.trajectory;
     $("brief-next").textContent = b.next ? `Next: ${b.next}` : "";
-    $<HTMLTextAreaElement>("complaint").value = b.complaint;
+    complaints = { en: b.complaint, hi: "" };
+    showComplaint("en");
     $("brief-model").textContent = `Written by ${b.model} from the numbers above only. Read it before you send it.`;
     $("brief-out").hidden = false;
     status.hidden = true;
@@ -720,6 +722,38 @@ $("btn-brief").addEventListener("click", async () => {
     btn.disabled = false;
   }
 });
+
+function showComplaint(lang: "en" | "hi") {
+  const ta = $<HTMLTextAreaElement>("complaint");
+  ta.value = complaints[lang];
+  ta.lang = lang;
+  for (const b of document.querySelectorAll<HTMLButtonElement>(".lang-btn")) {
+    b.dataset.on = String(b.dataset.lang === lang);
+  }
+}
+
+let translating = false;
+
+for (const b of document.querySelectorAll<HTMLButtonElement>(".lang-btn")) {
+  b.addEventListener("click", async () => {
+    const lang = b.dataset.lang as "en" | "hi";
+    if (lang === "en" || complaints.hi) return showComplaint(lang);
+    if (translating || !complaints.en) return;
+    translating = true;
+    const ta = $<HTMLTextAreaElement>("complaint");
+    const keep = ta.value;
+    ta.value = "हिन्दी में अनुवाद हो रहा है…";
+    try {
+      complaints.hi = await translateComplaint(complaints.en);
+      showComplaint("hi");
+    } catch (err) {
+      ta.value = keep;
+      $("brief-model").textContent = `Hindi failed: ${(err as Error).message}`;
+    } finally {
+      translating = false;
+    }
+  });
+}
 
 $("btn-copy").addEventListener("click", async () => {
   const text = $<HTMLTextAreaElement>("complaint").value;

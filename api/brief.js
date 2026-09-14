@@ -19,6 +19,7 @@ const SYSTEM = `You write evidence briefs for residents, journalists and lawyers
 RULES:
 - Every number, date, place name and scene id you write must come from FACTS. Never invent, estimate or round beyond what is given.
 - Never say who caused the change, and never speculate about intent. The measurement shows that the ground changed, not who changed it.
+- A higher loss-to-gain ratio means the change ran more one way (more like clearing); a ratio near 1 means loss and gain balanced (more like season). "loss only" means nothing was gained.
 - Plain English, short sentences. No bullet points, no headings, no emoji, no markdown.
 - If "series" is empty or has one entry, say plainly that one comparison cannot show a trend.
 - "summary" already names the worst year and the biggest year-on-year step. Take superlatives from it; never work them out yourself. Never call any other year the highest.
@@ -38,6 +39,29 @@ const parse = (raw) => {
 };
 
 const num = (v) => typeof v === "number" && Number.isFinite(v);
+
+const HINDI = `You translate a formal environmental complaint from English into Hindi (Devanagari script) for a resident to file. Same facts, same structure, same paragraph breaks (blank lines). Keep every number in Western digits exactly as written. Keep Sentinel-2 scene ids, place names and publication names in Latin script exactly as written. Render 'Punjab Land Preservation Act, 1900' as 'पंजाब भूमि संरक्षण अधिनियम, 1900'. Open with 'उपायुक्त एवं जिला वन अधिकारी महोदय,' and end with 'भवदीय,' followed by a blank line. Add nothing, drop nothing. Output a single JSON object and nothing else: {"complaintHindi": "<the translation>"}`;
+
+/** Second, separate call: Devanagari is token-heavy and would push the main brief past the function's time limit. */
+async function translate(key, model, complaint) {
+  const r = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model,
+      temperature: 0.1,
+      max_tokens: 1400,
+      messages: [
+        { role: "system", content: HINDI },
+        { role: "user", content: complaint },
+      ],
+    }),
+  });
+  if (!r.ok) throw new Error(`featherless ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const out = parse((await r.json()).choices?.[0]?.message?.content ?? "");
+  if (!out.complaintHindi) throw new Error("no translation came back");
+  return String(out.complaintHindi);
+}
 
 /** Only the shape the page sends. Anything else is dropped before it reaches the model. */
 function facts(body) {
@@ -107,11 +131,22 @@ export default async function handler(req, res) {
   const key = process.env.FEATHERLESS_API_KEY;
   if (!key) return res.status(500).json({ error: "FEATHERLESS_API_KEY is not set" });
 
+  const model = process.env.FEATHERLESS_MODEL || DEFAULT_MODEL;
+
+  if (req.body?.mode === "hindi") {
+    const complaint = typeof req.body.complaint === "string" ? req.body.complaint.slice(0, 2500) : "";
+    if (!complaint.trim()) return res.status(400).json({ error: "no complaint to translate" });
+    try {
+      return res.json({ complaintHindi: await translate(key, model, complaint), model });
+    } catch (e) {
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
   const f = facts(req.body);
   if (!f) return res.status(400).json({ error: "bad facts" });
 
   try {
-    const model = process.env.FEATHERLESS_MODEL || DEFAULT_MODEL;
     const r = await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },

@@ -76,3 +76,15 @@ export async function writeBrief(input: BriefInput): Promise<Brief> {
   if (!res.ok) throw new Error(data.error ?? `brief failed (${res.status})`);
   return data as Brief;
 }
+
+/** The Hindi version is a second call, made only when someone asks for it. */
+export async function translateComplaint(complaint: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/brief`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "hindi", complaint }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? `translation failed (${res.status})`);
+  return String(data.complaintHindi ?? "");
+}
