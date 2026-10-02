@@ -208,8 +208,13 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
+.brand-mark { display: block; flex: none; }
+
 .brand h1 {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   font-size: 21px;
   font-weight: 700;
   letter-spacing: -0.025em;
