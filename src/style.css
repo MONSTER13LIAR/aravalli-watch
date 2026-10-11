@@ -788,6 +788,73 @@ button.small { padding: 5px 10px; font-size: 12px; }
 
 #complaint:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
 
+/* ---------- file this complaint ---------- */
+
+.file {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.file > .site-label { color: var(--accent); }
+.file .help { margin-top: 6px; }
+
+.file-to {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+
+.to-label { grid-row: span 2; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); padding-top: 2px; }
+.to-name { font-weight: 600; color: var(--ink); }
+.to-mail { font: 400 12px/1.5 "JetBrains Mono", ui-monospace, monospace; color: var(--muted); }
+.to-mail a { color: inherit; }
+
+.file-district {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.file-district select {
+  font: 500 13px Inter, system-ui, sans-serif;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.file-district small { flex-basis: 100%; font-size: 11.5px; color: var(--faint); }
+.file-district small:empty { display: none; }
+
+.file-actions button { padding: 10px 8px; }
+
+.file-portal { margin: 12px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.file-portal a, .cites a { color: var(--ink); text-underline-offset: 2px; }
+
+.cites {
+  margin: 12px 0 0;
+  padding: 0 0 0 16px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.cites li + li { margin-top: 3px; }
+
 /* ---------- why-this-matters context ---------- */
 
 .context {

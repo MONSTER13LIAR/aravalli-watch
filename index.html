@@ -173,11 +173,62 @@
           <div><dt>Loss : gain</dt><dd id="m-px"></dd></div>
         </dl>
 
+        <section class="file" id="file">
+          <span class="site-label">File this complaint</span>
+          <p class="help">
+            A letter built from these numbers, addressed to the district office, citing
+            the law. Nothing is sent from here: you read it, then you send it.
+          </p>
+          <button id="btn-file" class="primary wide">File this complaint</button>
+          <div id="file-out" hidden>
+            <div class="file-to">
+              <span class="to-label">To</span>
+              <span class="to-name" id="file-to"></span>
+              <span class="to-mail" id="file-mail"></span>
+            </div>
+            <label class="file-district">
+              <span>District</span>
+              <select id="file-district">
+                <option value="gurugram">Gurugram</option>
+                <option value="faridabad">Faridabad</option>
+                <option value="delhi">Delhi</option>
+                <option value="other">Somewhere else</option>
+              </select>
+              <small id="file-district-note"></small>
+            </label>
+            <div class="complaint">
+              <div class="complaint-head">
+                <span>Your letter</span>
+                <span class="lang" role="group" aria-label="Language">
+                  <button type="button" class="lang-btn" data-lang="en" data-on="true">English</button>
+                  <button type="button" class="lang-btn" data-lang="hi" lang="hi">हिन्दी</button>
+                </span>
+              </div>
+              <textarea id="complaint" rows="12" spellcheck="false"></textarea>
+            </div>
+            <div class="row file-actions">
+              <button id="btn-mail" class="primary">Email the DC</button>
+              <button id="btn-copy" class="ghost">Copy</button>
+              <button id="btn-download" class="ghost">Download packet</button>
+            </div>
+            <p class="file-portal">
+              Or file it on <a href="https://pgportal.gov.in/" target="_blank" rel="noopener">CPGRAMS</a>,
+              the Government of India&rsquo;s grievance portal. Paste the letter and attach the packet.
+            </p>
+            <ul class="cites" id="file-cites"></ul>
+            <p class="source" id="file-note">
+              The app never sends anything. Email opens your own mail app with a short version
+              of the letter; download the packet and attach it yourself, then you send it.
+              Fill in your name before sending. If your mail app cuts the email short, use Copy.
+            </p>
+          </div>
+        </section>
+
         <section class="brief" id="brief">
           <span class="site-label">Track every year &middot; AI brief</span>
           <p class="help">
             Runs the same measurement for every year since your baseline, then writes
-            the finding in plain words and a complaint you can file.
+            the finding in plain words.
           </p>
           <button id="btn-brief" class="primary wide">Track every year &amp; write the brief</button>
           <p class="status" id="brief-status" hidden></p>
@@ -189,17 +240,6 @@
             <p class="brief-finding" id="brief-finding"></p>
             <p class="brief-traj" id="brief-traj"></p>
             <p class="brief-next" id="brief-next"></p>
-            <div class="complaint">
-              <div class="complaint-head">
-                <span>Complaint draft</span>
-                <span class="lang" role="group" aria-label="Language">
-                  <button type="button" class="lang-btn" data-lang="en" data-on="true">English</button>
-                  <button type="button" class="lang-btn" data-lang="hi" lang="hi">हिन्दी</button>
-                </span>
-                <button id="btn-copy" class="ghost small">Copy</button>
-              </div>
-              <textarea id="complaint" readonly rows="11" spellcheck="false"></textarea>
-            </div>
             <p class="source" id="brief-model"></p>
           </div>
         </section>

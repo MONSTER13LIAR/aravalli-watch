@@ -11,9 +11,10 @@ import { packetHtml } from "./packet";
 import { SITES, YEARS, type Site } from "./presets";
 import { geocode } from "./geocode";
 import { chartSvg, sweepYears, type Sweep } from "./sweep";
-import { translateComplaint, writeBrief } from "./brief";
+import { writeBrief } from "./brief";
 import { BELT, kmBetween, scanBelt, SCAN_NOW, SCAN_THEN, type Cell, type Scan } from "./scan";
-import { reverseGeocode } from "./reverse";
+import { districtOf, reverseGeocode } from "./reverse";
+import { centreOf, citationsFor, letter, mailto, OFFICES, type District, type Lang, type LetterInput } from "./complaint";
 import { askMap, type Action, type Comparison } from "./ask";
 
 // maplibre resolves its worker filename by string concatenation, which no
@@ -171,7 +172,6 @@ let measured: ChangeMeasure | null = null;
 
 let sweep: Sweep | null = null;
 let sweepKey = "";
-let complaints = { en: "", hi: "" };
 let scan: Scan | null = null;
 
 let thenYear = 2019;
@@ -296,6 +296,7 @@ async function pickHotspot(c: Cell, rank: number, known: Site | null) {
     id: `hotspot-${rank}`,
     label: `Hotspot ${rank}`,
     place: known ? `${known.place} (hotspot ${rank})` : `Hotspot ${rank}, near ${name}`,
+    placeHi: known ? `${known.placeHi} (हॉटस्पॉट ${rank})` : `हॉटस्पॉट ${rank}, ${name} के पास`,
     blurb: "",
     source: known ? known.source : { name: `Found by the belt scan, ${SCAN_THEN} → ${SCAN_NOW}`, url: "" },
     kind: "loss",
@@ -356,7 +357,7 @@ $("btn-scan").addEventListener("click", async () => {
     status.hidden = true;
   } catch (err) {
     status.dataset.tone = "error";
-    status.textContent = `Scan failed: ${(err as Error).message}`;
+    status.textContent = plainError(err, "The scan");
   } finally {
     btn.disabled = false;
   }
@@ -556,7 +557,7 @@ async function run() {
     $("run-status").hidden = true;
     show("verdict");
   } catch (err) {
-    if (id === runId) say(`Something broke: ${(err as Error).message}`, "error");
+    if (id === runId) say(plainError(err, "The measurement"), "error");
   }
 }
 
@@ -629,7 +630,9 @@ function fillVerdict() {
         `No meaningful loss at <b>${where}</b>, ${span}. This is what ground that was left alone looks like.`
       : signal === "noise"
         ? `<span class="big">${measured.lossPct.toFixed(1)}%</span>` +
-          `lost cover at <b>${where}</b>, but gains almost match it. Symmetric change is season and sampling, not clearing.`
+          (ratio < 0.67
+            ? `lost cover at <b>${where}</b>, but more ground gained cover than lost it (<b>${ratio.toFixed(1)} : 1</b>). Change both ways is season and sampling, not clearing.`
+            : `lost cover at <b>${where}</b>, but gains almost match it. Symmetric change is season and sampling, not clearing.`)
         : `<span class="big">${formatArea(measured.lossM2)}</span>` +
           `of <b>${where}</b> lost vegetation cover, ${span} — <b>${measured.lossPct.toFixed(1)}%</b> of the area, ` +
           `with losses outrunning gains <b>${ratio === Infinity ? "entirely" : `${ratio.toFixed(1)} : 1`}</b>.`;
@@ -654,6 +657,8 @@ const briefKey = () => (scenes ? `${JSON.stringify(ring)}|${scenes.before.id}|${
 /** A new verdict makes the old chart and letter wrong; take them down. */
 function resetBrief() {
   $("brief-out").hidden = true;
+  $("file-out").hidden = true;
+  $("btn-file").hidden = false;
   $("brief-status").hidden = true;
   if (sweepKey !== briefKey()) {
     $("chart-wrap").hidden = true;
@@ -710,50 +715,108 @@ $("btn-brief").addEventListener("click", async () => {
     $("brief-finding").textContent = b.finding;
     $("brief-traj").textContent = b.trajectory;
     $("brief-next").textContent = b.next ? `Next: ${b.next}` : "";
-    complaints = { en: b.complaint, hi: "" };
-    showComplaint("en");
     $("brief-model").textContent = `Written by ${b.model} from the numbers above only. Read it before you send it.`;
     $("brief-out").hidden = false;
     status.hidden = true;
   } catch (err) {
     status.dataset.tone = "error";
-    status.textContent = `Brief failed: ${(err as Error).message}`;
+    status.textContent = plainError(err, "The brief");
   } finally {
     btn.disabled = false;
   }
 });
 
-function showComplaint(lang: "en" | "hi") {
+// ---------- file this complaint ----------
+
+let fileLang: Lang = "en";
+let fileDistrict: District = "gurugram";
+
+const letterInput = (): LetterInput | null => {
+  if (!scenes || !measured) return null;
+  const { signal, ratio } = classify(measured);
+  return {
+    place: site ? site.place : "the outlined area",
+    placeHi: site ? site.placeHi : "चिह्नित क्षेत्र",
+    district: fileDistrict,
+    ring,
+    areaM2: ringArea(ring),
+    before: scenes.before,
+    after: scenes.after,
+    measure: measured,
+    signal,
+    ratio,
+  };
+};
+
+const host = (url: string) => new URL(url).hostname;
+
+/** Redraws the letter, addressee and citations for the current district and language. */
+function renderLetter() {
+  const p = letterInput();
+  if (!p) return;
+  const office = OFFICES[fileDistrict];
+  $("file-to").textContent = office.name.en;
+  $("file-mail").innerHTML = office.email && office.source
+    ? `${office.email} &middot; <a href="${office.source}" target="_blank" rel="noopener">from ${host(office.source)}</a>`
+    : fileDistrict === "delhi"
+      ? "This area is in Delhi, not a Haryana district. File it on CPGRAMS below."
+      : "Outside Gurugram and Faridabad. Add your district office&rsquo;s address, or file it on CPGRAMS below.";
+  $<HTMLSelectElement>("file-district").value = fileDistrict;
+  $("btn-mail").hidden = !office.email;
+
   const ta = $<HTMLTextAreaElement>("complaint");
-  ta.value = complaints[lang];
-  ta.lang = lang;
+  ta.value = letter(p, fileLang);
+  ta.lang = fileLang;
   for (const b of document.querySelectorAll<HTMLButtonElement>(".lang-btn")) {
-    b.dataset.on = String(b.dataset.lang === lang);
+    b.dataset.on = String(b.dataset.lang === fileLang);
   }
+
+  $("file-cites").innerHTML = citationsFor(fileDistrict)
+    .map((c) => `<li><a href="${c.url}" target="_blank" rel="noopener">${fileLang === "hi" ? c.hi : c.en}</a></li>`)
+    .join("");
 }
 
-let translating = false;
+$("btn-file").addEventListener("click", async () => {
+  if (!scenes || !measured) return;
+  const btn = $<HTMLButtonElement>("btn-file");
+  btn.disabled = true;
+  btn.textContent = "Finding the right office…";
+  let note = "";
+  let d: District | null = site?.district ?? null;
+  if (!d) {
+    const [lon, lat] = centreOf(ring);
+    d = await districtOf(lon, lat).catch(() => null);
+    note = d
+      ? "Picked from OpenStreetMap district boundaries. Change it if it is wrong."
+      : "Could not look up the district. Pick it yourself.";
+  }
+  fileDistrict = d ?? "other";
+  $("file-district-note").textContent = note;
+  renderLetter();
+  btn.hidden = true;
+  btn.disabled = false;
+  btn.textContent = "File this complaint";
+  $("file-out").hidden = false;
+});
+
+$<HTMLSelectElement>("file-district").addEventListener("change", (e) => {
+  fileDistrict = (e.target as HTMLSelectElement).value as District;
+  $("file-district-note").textContent = "";
+  renderLetter();
+});
 
 for (const b of document.querySelectorAll<HTMLButtonElement>(".lang-btn")) {
-  b.addEventListener("click", async () => {
-    const lang = b.dataset.lang as "en" | "hi";
-    if (lang === "en" || complaints.hi) return showComplaint(lang);
-    if (translating || !complaints.en) return;
-    translating = true;
-    const ta = $<HTMLTextAreaElement>("complaint");
-    const keep = ta.value;
-    ta.value = "हिन्दी में अनुवाद हो रहा है…";
-    try {
-      complaints.hi = await translateComplaint(complaints.en);
-      showComplaint("hi");
-    } catch (err) {
-      ta.value = keep;
-      $("brief-model").textContent = `Hindi failed: ${(err as Error).message}`;
-    } finally {
-      translating = false;
-    }
+  b.addEventListener("click", () => {
+    fileLang = b.dataset.lang as Lang;
+    renderLetter();
   });
 }
+
+$("btn-mail").addEventListener("click", () => {
+  const p = letterInput();
+  const url = p && mailto(p, fileLang);
+  if (url) window.location.href = url;
+});
 
 $("btn-copy").addEventListener("click", async () => {
   const text = $<HTMLTextAreaElement>("complaint").value;
@@ -767,6 +830,27 @@ $("btn-copy").addEventListener("click", async () => {
   }
 });
 
+$("btn-download").addEventListener("click", async () => {
+  const btn = $<HTMLButtonElement>("btn-download");
+  btn.disabled = true;
+  btn.textContent = "Preparing…";
+  try {
+    const html = await buildPacket({ lang: fileLang, text: $<HTMLTextAreaElement>("complaint").value });
+    if (!html) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    const slug = (site ? site.place : "outline").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    a.download = `aravalli-watch-${slug}-${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Download packet";
+  }
+});
+
 $("btn-again-year").addEventListener("click", () => show("when"));
 $("btn-again-place").addEventListener("click", () => {
   resetMap();
@@ -775,13 +859,34 @@ $("btn-again-place").addEventListener("click", () => {
 
 // ---------- export ----------
 
-$("btn-export").addEventListener("click", () => {
-  if (!scenes || !stats || !measured) return;
+/**
+ * Resolves once the map has drawn every tile it asked for. Capturing the canvas
+ * earlier is how the packet used to come out with a blank after-image: the
+ * basemap was in, the Sentinel-2 tiles were still on their way from the tiler.
+ */
+function settled(map: MLMap, ms = 25000): Promise<boolean> {
+  return new Promise((resolve) => {
+    let timer = 0;
+    const onIdle = () => {
+      if (!map.areTilesLoaded()) return;
+      window.clearTimeout(timer);
+      map.off("idle", onIdle);
+      // One more frame so the buffer holds the finished picture.
+      requestAnimationFrame(() => resolve(true));
+    };
+    timer = window.setTimeout(() => {
+      map.off("idle", onIdle);
+      resolve(false);
+    }, ms);
+    map.on("idle", onIdle);
+    map.triggerRepaint();
+  });
+}
 
-  mapBefore.redraw();
-  mapAfter.redraw();
-
-  const html = packetHtml({
+async function buildPacket(complaint?: { lang: Lang; text: string }): Promise<string | null> {
+  if (!scenes || !stats || !measured) return null;
+  await Promise.all([settled(mapBefore), settled(mapAfter)]);
+  return packetHtml({
     ring,
     areaM2: ringArea(ring),
     before: scenes.before,
@@ -794,13 +899,38 @@ $("btn-export").addEventListener("click", () => {
       before: mapBefore.getCanvas().toDataURL("image/png"),
       after: mapAfter.getCanvas().toDataURL("image/png"),
     },
+    complaint,
   });
+}
 
+$("btn-export").addEventListener("click", async () => {
+  if (!scenes || !stats || !measured) return;
+  const btn = $<HTMLButtonElement>("btn-export");
+  // Open the tab inside the click, or the browser treats it as a pop-up.
   const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  if (w) w.document.write(`<p style="font:14px/1.5 system-ui,sans-serif;padding:32px;color:#71767f">Waiting for the satellite images to finish loading…</p>`);
+  btn.disabled = true;
+  btn.textContent = "Waiting for the images to load…";
+  try {
+    const html = await buildPacket();
+    if (!html || !w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Open the evidence packet";
+  }
 });
+
+/** Never show a visitor a server's raw reply. Plain sentences from our own code pass through. */
+function plainError(err: unknown, what: string): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/[{}<]|\b[45]\d\d\b|featherless|fetch|network|json|api/i.test(msg) || msg.length > 160) {
+    return `${what} could not finish: a service it relies on did not answer properly. Nothing else on the page is affected. Try again in a minute.`;
+  }
+  return `${what} could not finish: ${msg.replace(/\.$/, "")}.`;
+}
 
 // ---------- ask the map ----------
 
@@ -852,7 +982,7 @@ askForm.addEventListener("submit", async (e) => {
     status.hidden = true;
   } catch (err) {
     status.dataset.tone = "error";
-    status.textContent = `Couldn't answer: ${(err as Error).message}`;
+    status.textContent = plainError(err, "Ask the map");
   } finally {
     btn.disabled = false;
   }
@@ -896,6 +1026,6 @@ $("find").addEventListener("submit", async (e) => {
       results.appendChild(li);
     }
   } catch (err) {
-    results.innerHTML = `<li>${(err as Error).message}</li>`;
+    results.innerHTML = `<li>${plainError(err, "Place search")}</li>`;
   }
 });

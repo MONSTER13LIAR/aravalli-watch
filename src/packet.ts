@@ -12,7 +12,11 @@ export interface PacketInput {
   measure: ChangeMeasure;
   threshold: number;
   images: { before: string; after: string };
+  /** The letter as the visitor left it, so the packet is the whole record. */
+  complaint?: { lang: "en" | "hi"; text: string };
 }
+
+const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const iso = (s: string) => new Date(s).toISOString().replace(".000Z", "Z");
 
@@ -26,6 +30,8 @@ export function packetHtml(p: PacketInput): string {
   const reading =
     signal === "directional"
       ? "Losses outrun gains, which is the pattern left by clearing or dumping rather than by season."
+      : signal === "noise" && ratio < 0.67
+        ? "More ground gained cover than lost it. Change in both directions is the signature of seasonal or sampling variation, not directional change — this outline should not be read as evidence of clearing."
       : signal === "noise"
         ? "Losses and gains are close to balanced. That is the signature of seasonal or sampling variation, not directional change — this outline should not be read as evidence of clearing."
         : "No meaningful loss of cover was measured inside this outline.";
@@ -56,6 +62,8 @@ export function packetHtml(p: PacketInput): string {
   code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 10.5px; word-break: break-all; }
   .big { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
   .note { border-left: 2px solid #c6431f; padding-left: 11px; color: #14171c; font-size: 11.5px; }
+  .letter { white-space: pre-wrap; font: 11.5px/1.6 -apple-system, "Segoe UI", Inter, "Noto Sans Devanagari", sans-serif;
+            border: 1px solid #e6e5e0; border-radius: 6px; padding: 12px 14px; margin: 0; }
   footer { margin-top: 26px; padding-top: 12px; border-top: 1px solid #e6e5e0;
            font-size: 10px; color: #9aa0a8; }
 </style></head><body>
@@ -108,6 +116,11 @@ Statistics come from the Planetary Computer statistics endpoint over the same ou
 <p class="note">This records that the ground changed, not who changed it. Sentinel&#8209;2
 resolves 10&nbsp;m, so a single truckload will not appear. Seasonal die-back, harvest and
 drought also reduce NDVI &mdash; a like-for-like season comparison is the honest one.</p>
+
+${p.complaint && p.complaint.text.trim()
+  ? `<h2>Complaint letter</h2>
+<pre class="letter" lang="${p.complaint.lang}">${esc(p.complaint.text)}</pre>`
+  : ""}
 
 <footer>
   Generated ${new Date().toISOString().replace(".000Z", "Z")} ·

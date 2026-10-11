@@ -60,14 +60,17 @@ Three taps, no form.
    A printable evidence packet carries the measurement, both scene ids, both
    acquisition timestamps, the method, and the limits.
 4. **Scan the whole belt.** Instead of naming a place, let the satellite look:
-   every square kilometre of the Faridabad–Gurugram Aravallis, Bandhwari to
-   Tughlakabad, is differenced between two dry-season passes and ranked by what it
-   lost. The top twelve are numbered on the map; a hit within a kilometre of a
+   every square kilometre of the Faridabad–Gurugram hills (77.11–77.289 E,
+   28.30–28.485 N: Bandhwari, Mangar, Anangpur, Ankhir) is differenced between two
+   dry-season passes and ranked by what it lost. The box stops west of NH44 and
+   south of Badarpur, so Faridabad city and south Delhi building sites are not
+   ranked as hill loss. The top twelve are numbered on the map; a hit within a kilometre of a
    pre-marked area is named as that area, anything else is flagged as not on
    record. Each pixel is measured against its own 4 km tile's median change, so a
    November smog blanket over Delhi — which drops NDVI 0.1 across whole tiles —
-   cancels out and only what is local survives. Run cold, the scanner finds Ankhir
-   on its own.
+   cancels out and only what is local survives. An earlier, wider box had the
+   scanner "find" Ankhir on its own; that cell was centred on Faridabad's Sector
+   21A, so the claim is withdrawn along with the city cells.
 5. **Ask the map.** A question in plain words — *is Anangpur worse than Bandhwari?*,
    *was 2024 just a dry year?* The model never measures anything: it names the
    comparisons it needs, the page runs them with the verdict's own code, and the
@@ -77,12 +80,22 @@ Three taps, no form.
 6. **Track every year & write the brief.** One button runs the same measurement
    for every dry-season year since the baseline, all pinned to the baseline's
    tile, and draws the result as a bar chart with the worst year marked. The
-   numbers then go to a language model which writes the finding in plain words,
-   reads the trajectory, and drafts a complaint addressed to the Deputy
-   Commissioner and District Forest Officer — with both scene ids, the published
-   record, and the limits stated — in English and in Hindi, because the residents
-   who watch the trucks do not file complaints in English. The model is instructed to use only the numbers
-   it is given, and the page says so under the draft: read it before you send it.
+   numbers then go to a language model which writes the finding in plain words
+   and reads the trajectory. The model is instructed to use only the numbers it
+   is given, and the page says so under the text.
+7. **File this complaint.** A letter built from a template, not a model, in
+   English and Hindi, because the residents who watch the trucks do not file
+   complaints in English. It picks the district office from the site's location
+   (Deputy Commissioner Gurugram or Faridabad, emails from the districts' own
+   contact pages; Delhi sites go to CPGRAMS), carries the measured numbers, both
+   scene ids and dates, and the coordinates, and cites Section 4 of the Punjab Land
+   Preservation Act, 1900, *M.C. Mehta v. Union of India* (Kant Enclave, Supreme
+   Court, 11 Sep 2018) and the Forest (Conservation) Act, 1980 — only "where the
+   land is notified", because the app does not know which parcels are. When the
+   verdict is season and sampling, the letter asks for a check on the ground and
+   says it alleges nothing. Buttons: email the DC (opens your own mail app),
+   copy, download the evidence packet with the letter inside. The app never sends
+   anything; you do.
 
 ### The pre-marked areas
 
@@ -121,7 +134,7 @@ every post-2022 scene look less green and inflated loss. The offset is now remov
 | Ankhir, Faridabad | 1.75 ha | 1.6% | 0.0 : 1 |
 | Ridge forest (control) | 71 m² | 0.0% | 0.0 : 1 |
 
-Over these six years the marked areas gained about as much cover as they lost, so the tool
+Over these six years the marked areas gained more cover than they lost, so the tool
 reports "season and sampling, not clearing" for them. The earlier figure for Bandhwari
 (14.01 ha, 110 : 1) was an artifact of the offset and is withdrawn.
 
