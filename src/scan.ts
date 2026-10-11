@@ -3,10 +3,24 @@ import { grey } from "./measure";
 import type { Ring } from "./geo";
 
 /**
- * The Faridabad–Gurugram stretch of the Aravallis, Bandhwari to Tughlakabad.
- * Every pre-marked area sits inside it. West, south, east, north.
+ * The Faridabad–Gurugram hills: Bandhwari, Mangar, Anangpur, Ankhir and the
+ * ridge between them. Every pre-marked area sits inside it. West, south, east, north.
+ *
+ * The box is cut to the hills, not to the districts. The first version ran to
+ * 77.34 E / 28.54 N and ranked Faridabad city, Badarpur and Sangam Vihar as
+ * "Aravalli loss" because building sites lose vegetation too.
+ * - East 77.289: west of NH44 (Mathura Road, ~77.31 through Faridabad) and of the
+ *   city sectors at the ridge foot. At 77.295 the scan still ranked the 77.29–77.30
+ *   column, whose cells sit on Greenfields Colony and Sector 21A Badkhal. Ankhir
+ *   village (77.287) and the Anangpur ridge stay inside.
+ * - North 28.485: below Badarpur, Tughlakabad extension and Sangam Vihar
+ *   (28.49 to 28.52), which are urban; Surajkund and Anangpur stay in.
+ * - West 77.11: east of Gurugram's Golf Course Extension and Sohna Road sectors;
+ *   Gwal Pahari, Bandhwari and the control ridge (77.145) stay in.
+ * - South 28.30: the ridge south of Bandhwari towards Damdama, short of Sohna town.
+ * This is a box around hill ground for ranking, not a legal boundary of the Aravallis.
  */
-export const BELT: [number, number, number, number] = [77.06, 28.3, 77.34, 28.54];
+export const BELT: [number, number, number, number] = [77.11, 28.3, 77.289, 28.485];
 export const SCAN_THEN = 2019;
 export const SCAN_NOW = 2025;
 
