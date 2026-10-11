@@ -109,15 +109,21 @@ surveyed boundary. Every outline was checked against the imagery before it went 
 The method was tested against a control — a stretch of Aravalli ridge forest that
 should read as unchanged over the same period, through the same seasonal shift.
 
-| Area | Lost cover | Share of area | Gained cover | Loss : gain |
-|---|---|---|---|---|
-| Bandhwari waste site | 14.01 ha | **13.3%** | 1,271 m² | **110 : 1** |
-| Ridge forest (control) | 0.52 ha | **0.4%** | 4.89 ha | **0.1 : 1** |
+**Correction, 11 Oct 2026.** Sentinel-2 scenes processed from 25 Jan 2022 onward (baseline 04.00+)
+store reflectance with a +1000 offset. The first version of this tool did not remove it, which made
+every post-2022 scene look less green and inflated loss. The offset is now removed per scene
+(`src/mpc.ts`). Re-measured with the fix, 16 Nov 2019 to 29 Nov 2025:
 
-Both from 16 Nov 2019 to 29 Nov 2025, same MGRS tile, same threshold, same seasonal
-window. The waste site separates from the control by a factor of 33 on lost area,
-and by three orders of magnitude on the loss-to-gain ratio. The control comes back
-slightly greener — regrowth, which is what undisturbed forest should do.
+| Area | Lost cover | Share of area | Loss : gain |
+|---|---|---|---|
+| Bandhwari waste site | 4.47 ha | 4.2% | 0.1 : 1 |
+| Anangpur farmhouse belt | 7.93 ha | 7.2% | 0.2 : 1 |
+| Ankhir, Faridabad | 1.75 ha | 1.6% | 0.0 : 1 |
+| Ridge forest (control) | 71 m² | 0.0% | 0.0 : 1 |
+
+Over these six years the marked areas gained about as much cover as they lost, so the tool
+reports "season and sampling, not clearing" for them. The earlier figure for Bandhwari
+(14.01 ha, 110 : 1) was an artifact of the offset and is withdrawn.
 
 That gap is the reason the loss-to-gain ratio is reported everywhere the loss figure
 appears. **Roughly balanced loss and gain means the scene simply moved** — season,
